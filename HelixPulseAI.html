@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelixPulse AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
+        
+        :root {
+            --bg-color: #010409;
+            --card-bg: #0d1117;
+            --border-color: #30363d;
+            --text-color: #e6edf3;
+            --accent-glow: #64ffda;
+            --button-primary: #58a6ff;
+            --button-secondary: #ff7b72;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        .animated-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .card-glow {
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.2), 0 0 30px rgba(100, 255, 218, 0.1);
+        }
+
+        .btn-blue {
+            background: linear-gradient(45deg, #58a6ff, #3080ff);
+            box-shadow: 0 4px 10px rgba(88, 166, 255, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-blue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(88, 166, 255, 0.4);
+        }
+        .btn-red {
+            background: linear-gradient(45deg, #ff7b72, #e5534b);
+            box-shadow: 0 4px 10px rgba(255, 123, 114, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-red:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 123, 114, 0.4);
+        }
+        .pulse-animation {
+            animation: pulse-border 2s infinite;
+        }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(100, 255, 218, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .helix-spinner {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-top: 5px solid #64ffda;
+            border-right: 5px solid transparent;
+            border-bottom: 5px solid #3080ff;
+            border-left: 5px solid transparent;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* New CSS for word wrapping in results */
+        #predictionResults > div {
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <div id="loadingScreen" class="fixed inset-0 bg-gray-900 z-[99] flex flex-col items-center justify-center transition-opacity duration-1000 ease-out">
+        <div class="helix-spinner"></div>
+        <div class="text-white mt-4 text-xl">HelixPulse AI</div>
+    </div>
+
+    <!-- Background Canvas for Particles -->
+    <canvas id="particleCanvas" class="animated-background"></canvas>
+
+    <div id="mainContent" class="hidden fade-in">
+        <!-- Header Section -->
+        <header class="text-white p-6 shadow-lg bg-card border-b border-gray-700">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-4xl font-bold tracking-tight text-white">HelixPulse AI</h1>
+            </div>
+        </header>
+
+        <!-- Main Content Container -->
+        <main class="container mx-auto p-4 md:p-8 flex-grow flex flex-col items-center">
+            
+            <!-- Input Page -->
+            <section id="inputPage" class="w-full max-w-4xl mt-8">
+                <div class="bg-card p-6 md:p-8 rounded-2xl border border-gray-700">
+                    <h2 class="text-4xl font-bold text-gray-200 mb-6 text-center">Your Health & Fitness Profile</h2>
+                    
+                    <!-- Fitness & Diet Coach Section -->
+                    <div class="mb-10">
+                        <h3 class="text-3xl font-bold text-gray-200 mb-4">Fitness & Diet Profile</h3>
+                        <p class="text-gray-400 mb-6 text-base">Please enter your details to generate a personalized plan.</p>
+                        
+                        <div class="space-y-4 mb-6">
+                            <div class="space-y-2">
+                                <label for="goal" class="block text-lg font-medium text-gray-300">Your Goal</label>
+                                <select id="goal" class="w-full rounded-lg p-3 bg-gray-800 text-gray-300 border-none outline-none text-base">
+                                    <option value="">Select Goal</option>
+                                    <option value="weightLoss">Weight Loss</option>
+                                    <option value="muscleGain">Muscle Gain</option>
+                                    <option value="endurance">Endurance</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label for="activityLevel" class="block text-lg font-medium text-gray-300">Activity Level</label>
+                                <select id="activityLevel" class="w-full rounded-lg p-3 bg-gray-800 text-gray-300 border-none outline-none text-base">
+                                    <option value="">Select Level</option>
+                                    <option value="sedentary">Sedentary</option>
+                                    <option value="lightlyActive">Lightly Active</option>
+                                    <option value="moderatelyActive">Moderately Active</option>
+                                    <option value="veryActive">Very Active</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="space-y-2">
+                                <label for="age" class="block text-lg font-medium text-gray-300">Age</label>
+                                <input type="number" id="age" value="" class="w-full rounded-lg p-3 bg-gray-800 text-gray-300 border-none outline-none text-base">
+                            </div>
+                            <div class="space-y-2">
+                                <label for="height" class="block text-lg font-medium text-gray-300">Height (cm)</label>
+                                <input type="number" id="height" value="" class="w-full rounded-lg p-3 bg-gray-800 text-gray-300 border-none outline-none text-base">
+                            </div>
+                            <div class="space-y-2">
+                                <label for="weight" class="block text-lg font-medium text-gray-300">Weight (kg)</label>
+                                <input type="number" id="weight" value="" class="w-full rounded-lg p-3 bg-gray-800 text-gray-300 border-none outline-none text-base">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Disease Predictor Section -->
+                    <div>
+                        <h3 class="text-3xl font-bold text-gray-200 mb-4">Symptom & Condition Profile</h3>
+                        <p class="text-gray-400 mb-6 text-base">Input your symptoms and any pre-existing conditions for a preliminary health assessment.</p>
+                        
+                        <div class="flex-grow flex flex-col space-y-4">
+                            <textarea id="symptomsInput" rows="4" class="w-full flex-grow p-4 rounded-lg bg-gray-800 text-gray-300 border-none outline-none text-base" placeholder="e.g., 'fever, cough, body aches, sore throat'"></textarea>
+                            
+                            <div class="w-full">
+                               <label for="preConditionsInput" class="block text-lg font-medium text-gray-300 mb-2">Pre-existing Medical Conditions (Optional)</label>
+                               <input type="text" id="preConditionsInput" class="w-full p-4 rounded-lg bg-gray-800 text-gray-300 border-none outline-none text-base" placeholder="e.g., 'diabetes, hypertension'" />
+                            </div>
+                            <div class="w-full">
+                               <label for="isTeetotalerInput" class="block text-lg font-medium text-gray-300 mb-2">Are you a teetotaler?</label>
+                               <select id="isTeetotalerInput" class="w-full rounded-lg p-3 bg-gray-800 text-gray-300 border-none outline-none text-base">
+                                   <option value="">Select Option</option>
+                                   <option value="Yes">Yes</option>
+                                   <option value="No">No</option>
+                               </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="submitBtn" class="w-full py-4 px-4 mt-8 rounded-xl text-lg font-medium text-white btn-blue">
+                        <span id="submitText">Analyze My Health</span>
+                        <div id="submitSpinner" class="hidden h-6 w-6 border-4 border-gray-100 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Results Page -->
+            <section id="resultsPage" class="hidden w-full max-w-6xl mt-8">
+                <div class="bg-card p-6 md:p-8 rounded-2xl border border-gray-700">
+                    <h2 class="text-4xl font-bold text-gray-200 mb-6 text-center">Your Personalized Results</h2>
+
+                    <!-- Fitness & Diet Coach Results -->
+                    <div class="mb-10">
+                        <h3 class="text-3xl font-bold text-gray-200 mb-4">Your AI Fitness & Diet Plan</h3>
+                        <div id="planOutput" class="mt-6 p-6 rounded-lg bg-gray-800 border border-gray-700">
+                            <h3 class="text-2xl font-semibold mb-3 text-gray-200">Your Personalized Plan:</h3>
+                            <div id="workoutPlan" class="mb-4 text-gray-300 text-lg"></div>
+                            <div id="dietPlan" class="text-gray-300 text-lg"></div>
+                        </div>
+
+                        <div class="mt-8">
+                            <h3 class="text-3xl font-bold text-gray-200 mb-4">Advanced AI Fitness Features</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Feature 1: Progress Tracking -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">1. AI Progress Tracker</h4>
+                                    <p class="text-gray-400 text-base mb-4">Analyze your progress based on your profile.</p>
+                                    <button id="trackProgressBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-blue">Track Progress</button>
+                                    <div id="progressOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+
+                                <!-- Feature 2: Real-time Form Feedback -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">2. Real-time Form Feedback</h4>
+                                    <p class="text-gray-400 text-base mb-4">Get AI guidance on your exercise form to prevent injury.</p>
+                                    <button id="getFeedbackBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-blue">Get Form Feedback</button>
+                                    <div id="feedbackOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+
+                                <!-- Feature 3: Dynamic Rest Timer -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">3. Dynamic Rest Timer</h4>
+                                    <p class="text-gray-400 text-base mb-4">Get an AI-powered message during your rest period.</p>
+                                    <button id="startRestTimerBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-blue">Start Rest Timer</button>
+                                    <div id="restTimerOutput" class="mt-4 text-center">
+                                        <p id="timerDisplay" class="text-3xl font-bold text-gray-200">00:00</p>
+                                        <p id="restMessage" class="mt-2 text-gray-400 text-base"></p>
+                                    </div>
+                                </div>
+
+                                <!-- Feature 4: Meal Photo Analyzer -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">4. AI Meal Photo Analyzer</h4>
+                                    <p class="text-gray-400 text-base mb-4">Receive a nutritional breakdown and recommendations.</p>
+                                    <button id="analyzeMealBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-blue">Analyze Meal</button>
+                                    <div id="mealAnalysisOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+
+                                <!-- Feature 5: Injury Risk Forecaster -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">5. Injury Risk Forecaster</h4>
+                                    <p class="text-gray-400 text-base mb-4">Get a risk assessment for common injuries.</p>
+                                    <button id="assessInjuryRiskBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-blue">Assess Risk</button>
+                                    <div id="injuryRiskOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center mt-12 mb-8">
+                        <button id="showPredictorBtn" class="py-4 px-8 rounded-xl text-lg font-medium text-white btn-red">If you have diseases, click here</button>
+                    </div>
+
+                    <!-- Smart Disease Predictor Section (Hidden by default) -->
+                    <div id="diseasePredictorSection" class="hidden">
+                        <h3 class="text-3xl font-bold text-gray-200 mb-4">Smart Disease Predictor</h3>
+                        <p class="text-gray-400 mb-6 text-base">Based on your provided symptoms and conditions, here is a preliminary health assessment. This is not a substitute for professional medical advice.</p>
+                        
+                        <div id="predictorOutput" class="mt-4 p-6 rounded-lg bg-gray-800 border border-gray-700 flex-grow">
+                            <h3 class="text-2xl font-semibold mb-3 text-gray-200">Assessment Results:</h3>
+                            <div id="predictionResults" class="text-base flex items-center justify-center">
+                                <div id="predictionSpinner" class="hidden h-8 w-8 border-4 border-gray-100 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8">
+                            <h3 class="text-3xl font-bold text-gray-200 mb-4">Advanced AI Features</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Feature 1: Preventive Recommendations -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">1. Preventive Recommendations</h4>
+                                    <p class="text-gray-400 text-base mb-4">Receive proactive health advice based on your conditions.</p>
+                                    <button id="getPreventiveTipsBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-red">Get Tips</button>
+                                    <div id="preventiveTipsOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+                                
+                                <!-- Feature 2: Specialist Finder -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">2. AI Specialist Finder</h4>
+                                    <p class="text-gray-400 text-base mb-4">Find the right specialist for your predicted condition.</p>
+                                    <button id="findSpecialistBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-red">Find Specialist</button>
+                                    <div id="specialistOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+
+                                <!-- Feature 3: Drug Interaction Checker -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">3. Drug Interaction Checker</h4>
+                                    <p class="text-gray-400 text-base mb-4">Check for potential drug interactions.</p>
+                                    <button id="checkInteractionBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-red">Check Interaction</button>
+                                    <div id="interactionOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+
+                                <!-- Feature 4: Lifestyle Risk Analyzer -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">4. Lifestyle Risk Analyzer</h4>
+                                    <p class="text-gray-400 text-base mb-4">Assess your risk for diseases based on your habits.</p>
+                                    <button id="analyzeLifestyleBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-red">Analyze Risk</button>
+                                    <div id="lifestyleOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+
+                                <!-- Feature 5: Symptom Trend Analysis -->
+                                <div class="bg-card p-6 rounded-2xl border border-gray-700">
+                                    <h4 class="text-xl font-semibold mb-2 text-gray-300">5. Symptom Trend Analysis</h4>
+                                    <p class="text-gray-400 text-base mb-4">Track the progression of your symptoms over time.</p>
+                                    <button id="analyzeTrendBtn" class="w-full py-3 px-4 rounded-xl text-base font-medium text-white btn-red">Analyze Trend</button>
+                                    <div id="trendOutput" class="mt-4 text-gray-300 text-base"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal for Messages -->
+        <div id="messageModal" class="fixed inset-0 z-50 bg-gray-900 bg-opacity-70 hidden flex items-center justify-center p-4">
+            <div class="bg-gray-800 rounded-2xl shadow-xl p-6 max-w-sm w-full text-center border border-gray-700">
+                <h4 id="modalTitle" class="text-xl font-bold mb-2 text-white"></h4>
+                <p id="modalMessage" class="text-gray-400 mb-4 text-base"></p>
+                <button id="modalCloseBtn" class="w-full py-3 px-4 rounded-lg text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">Close</button>
+            </div>
+        </div>
+
+        <script>
+            // --- UI Elements ---
+            const body = document.body;
+            const loadingScreen = document.getElementById('loadingScreen');
+            const mainContent = document.getElementById('mainContent');
+            const inputPage = document.getElementById('inputPage');
+            const resultsPage = document.getElementById('resultsPage');
+            const diseasePredictorSection = document.getElementById('diseasePredictorSection');
+
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            const showPredictorBtn = document.getElementById('showPredictorBtn');
+
+            const symptomsInput = document.getElementById('symptomsInput');
+            const preConditionsInput = document.getElementById('preConditionsInput');
+            const isTeetotalerInput = document.getElementById('isTeetotalerInput');
+            const goalInput = document.getElementById('goal');
+            const activityLevelInput = document.getElementById('activityLevel');
+            const ageInput = document.getElementById('age');
+            const heightInput = document.getElementById('height');
+            const weightInput = document.getElementById('weight');
+            
+            let userData = {};
+
+            // All the advanced feature buttons and outputs 
+            const trackProgressBtn = document.getElementById('trackProgressBtn');
+            const getFeedbackBtn = document.getElementById('getFeedbackBtn');
+            const startRestTimerBtn = document.getElementById('startRestTimerBtn');
+            const analyzeMealBtn = document.getElementById('analyzeMealBtn');
+            const assessInjuryRiskBtn = document.getElementById('assessInjuryRiskBtn');
+            const getPreventiveTipsBtn = document.getElementById('getPreventiveTipsBtn');
+            const findSpecialistBtn = document = document.getElementById('findSpecialistBtn');
+            const checkInteractionBtn = document.getElementById('checkInteractionBtn');
+            const analyzeLifestyleBtn = document.getElementById('analyzeLifestyleBtn');
+            const analyzeTrendBtn = document.getElementById('analyzeTrendBtn');
+            
+            const progressDataInput = document.getElementById('progressData');
+            const exerciseInput = document.getElementById('exerciseInput');
+            const mealPhotoInput = document.getElementById('mealPhotoInput');
+            const injuryDataInput = document.getElementById('injuryData');
+            const medicationInput = document.getElementById('medicationInput');
+            const lifestyleInput = document.getElementById('lifestyleInput');
+            const symptomTrackInput = document.getElementById('symptomTrack');
+
+            const planOutput = document.getElementById('planOutput');
+            const predictorOutput = document.getElementById('predictorOutput');
+            const progressOutput = document.getElementById('progressOutput');
+            const feedbackOutput = document.getElementById('feedbackOutput');
+            const restTimerOutput = document.getElementById('restTimerOutput');
+            const mealAnalysisOutput = document.getElementById('mealAnalysisOutput');
+            const injuryRiskOutput = document.getElementById('injuryRiskOutput');
+            const preventiveTipsOutput = document.getElementById('preventiveTipsOutput');
+            const specialistOutput = document.getElementById('specialistOutput');
+            const interactionOutput = document.getElementById('interactionOutput');
+            const lifestyleOutput = document.getElementById('lifestyleOutput');
+            const trendOutput = document.getElementById('trendOutput');
+            const messageModal = document.getElementById('messageModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const predictionSpinner = document.getElementById('predictionSpinner');
+
+            // API Key
+            const apiKey = "AIzaSyAr-LeVjL-d2NIareZuWDzemAdgMKF57Z0";
+            // Placeholder API endpoint for GLM 4.5 model
+            const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + apiKey;
+            
+            // --- GEMINI API-POWERED FUNCTIONS ---
+            async function callGeminiAPI(prompt, isStructured = false, image = null) {
+                const maxRetries = 3;
+                let delay = 1000;
+
+                for (let i = 0; i < maxRetries; i++) {
+                    const payload = {
+                        contents: [{ parts: [] }],
+                    };
+                    // Add the text prompt
+                    payload.contents[0].parts.push({ text: prompt });
+
+                    // Add image data if available
+                    if (image) {
+                        payload.contents[0].parts.push({
+                            inlineData: {
+                                mimeType: "image/png",
+                                data: image
+                            }
+                        });
+                    }
+
+                    // Add structured output configuration if requested
+                    if (isStructured) {
+                        payload.generationConfig = {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "name": { "type": "STRING" },
+                                        "score": { "type": "NUMBER" },
+                                        "advice": { "type": "STRING" }
+                                    },
+                                    "propertyOrdering": ["name", "score", "advice"]
+                                }
+                            }
+                        };
+                    }
+
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.status === 429 || response.status >= 500) {
+                            const errorData = await response.json();
+                            if (errorData.error?.message?.includes("The model is overloaded") || response.status === 503 || response.status === 429) {
+                                console.warn(`Retry attempt ${i + 1} of ${maxRetries}: API returned a transient error. Retrying in ${delay / 1000} seconds...`);
+                                await new Promise(res => setTimeout(res, delay));
+                                delay *= 2; // Exponential backoff
+                                continue; // Continue to the next retry attempt
+                            }
+                        }
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error?.message || "API call failed");
+                        }
+
+                        const result = await response.json();
+                        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                        if (!text) {
+                            throw new Error("No content received from API");
+                        }
+
+                        if (isStructured) {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                throw new Error("Failed to parse JSON response from API");
+                            }
+                        }
+
+                        return text;
+
+                    } catch (error) {
+                        console.error(`Gemini API call failed on attempt ${i + 1}:`, error);
+                        // Don't retry if it's a non-transient error
+                        throw error;
+                    }
+                }
+                throw new Error(`Failed to get a response from the Gemini API after ${maxRetries} attempts.`);
+            }
+            
+            // --- MAIN LOGIC ---
+            function handleSubmit() {
+                // Input validation check
+                const requiredFields = [goalInput, activityLevelInput, ageInput, heightInput, weightInput];
+                const allValid = requiredFields.every(field => field.value && field.value.trim() !== "");
+
+                if (!allValid) {
+                    showMessage('Input Error', 'Please fill out all the required fields before proceeding.');
+                    return;
+                }
+
+                inputPage.classList.add('hidden');
+                resultsPage.classList.remove('hidden');
+                
+                userData = {
+                    goal: goalInput.value,
+                    activityLevel: activityLevelInput.value,
+                    age: ageInput.value,
+                    height: heightInput.value,
+                    weight: weightInput.value,
+                    symptoms: symptomsInput.value.trim(),
+                    preConditions: preConditionsInput.value.trim(),
+                    isTeetotaler: isTeetotalerInput.value
+                };
+                
+                generatePlan();
+            }
+
+            async function generatePlan() {
+                const prompt = `Act as an AI fitness and diet coach. Given the following user information:
+                - Goal: ${userData.goal}
+                - Activity Level: ${userData.activityLevel}
+                - Age: ${userData.age}
+                - Height: ${userData.height} cm
+                - Weight: ${userData.weight} kg
+                
+                Generate a very simplified workout plan and a very simplified diet plan. Use a bulleted list for both sections. The total response should be very summarized. For example:
+                Workout Plan:
+                - Warmup: 5 mins light cardio
+                - Main routine: 30 mins strength training
+                - Cool down: 5 mins stretching
+                
+                Diet Plan:
+                - Breakfast: Protein smoothie
+                - Lunch: Grilled chicken salad
+                - Dinner: Salmon with roasted vegetables`;
+                
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    // Simple parsing for this example
+                    const sections = response.split('Diet Plan:');
+                    const workoutData = sections[0].replace('Workout Plan:', '').trim();
+                    const dietData = 'Diet Plan:' + (sections[1] || 'No diet plan provided.');
+                    
+                    document.getElementById('workoutPlan').innerHTML = workoutData.replace(/\n/g, '<br>');
+                    document.getElementById('dietPlan').innerHTML = dietData.replace(/\n/g, '<br>');
+
+                } catch (error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+            
+            async function showPredictor() {
+                diseasePredictorSection.classList.remove('hidden');
+                await predictCondition();
+            }
+
+            async function predictCondition() {
+                // Show spinner and clear previous results
+                document.getElementById('predictionResults').innerHTML = '';
+                predictionSpinner.classList.remove('hidden');
+                
+                const prompt = `Act as a preliminary disease prediction AI. Given the following user symptoms: "${userData.symptoms}", pre-existing conditions: "${userData.preConditions}", and alcohol consumption: "${userData.isTeetotaler}", provide a list of potential conditions. For each condition, provide a confidence score from 0.0 to 1.0 and a brief advice. If no conditions match, say "No matching conditions found.".
+
+                Example of valid output:
+                [
+                  { "name": "Common Cold", "score": 0.85, "advice": "Rest and stay hydrated. Over-the-counter medication can help." },
+                  { "name": "Influenza (Flu)", "score": 0.70, "advice": "This could be the flu. Stay home and see a doctor if severe." }
+                ]`;
+                
+                try {
+                    const predictionData = await callGeminiAPI(prompt, true);
+                    renderPredictionResults(predictionData);
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                    document.getElementById('predictionResults').textContent = 'An error occurred. Please try again.';
+                } finally {
+                    // Hide spinner
+                    predictionSpinner.classList.add('hidden');
+                }
+            }
+
+            async function getPreventiveTips() {
+                const prompt = `Act as a health advisor. Given the pre-existing conditions: "${userData.preConditions}" and alcohol consumption: "${userData.isTeetotaler}", provide a very short bulleted list of personalized preventive health tips to manage and mitigate risks.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    preventiveTipsOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+            
+            async function trackProgress() {
+                const prompt = `Act as a motivating AI fitness coach. Analyze the following user data to assess their progress and give a motivational message. Provide the analysis in a short bulleted list.
+                - Goal: ${userData.goal}
+                - Activity Level: ${userData.activityLevel}
+                - Age: ${userData.age}
+                - Height: ${userData.height} cm
+                - Weight: ${userData.weight} kg`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    progressOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+            
+            async function getFormFeedback() {
+                const prompt = `Act as an AI personal trainer. Based on the user's profile: Goal: ${userData.goal}, give a very short bulleted list of 2-3 key tips to improve their form and prevent injury.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    feedbackOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+
+            let restTimerInterval;
+            let restTimeInSeconds = 0;
+            async function startRestTimer() {
+                const prompt = `Give me a very short, single-sentence motivational message or fitness fact to read during a rest timer.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    document.getElementById('restMessage').textContent = response;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+
+                restTimeInSeconds = 60;
+                clearInterval(restTimerInterval);
+                const timerDisplay = document.getElementById('timerDisplay');
+                timerDisplay.textContent = "01:00";
+                
+                restTimerInterval = setInterval(() => {
+                    restTimeInSeconds--;
+                    const minutes = Math.floor(restTimeInSeconds / 60);
+                    const seconds = restTimeInSeconds % 60;
+                    timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    if (restTimeInSeconds <= 0) {
+                        clearInterval(restTimerInterval);
+                        timerDisplay.textContent = "Time's Up!";
+                    }
+                }, 1000);
+            }
+            
+            async function analyzeMeal() {
+                const prompt = `Act as a nutrition consultant. Based on the user's goal: ${userData.goal}, give a very short bulleted list of a nutritional breakdown (calories, macros) and a suggestion for a healthier alternative.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    mealAnalysisOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+            
+            async function assessInjuryRisk() {
+                const prompt = `Act as a sports physiologist. Based on the user's activity level: ${userData.activityLevel}, and goal: ${userData.goal}, provide a very short bulleted list of a risk assessment for potential injuries and suggest a preventive measure.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    injuryRiskOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+            
+            async function findSpecialist() {
+                const prompt = `Act as a medical referral AI. Based on the user's symptoms: ${userData.symptoms} and pre-existing conditions: ${userData.preConditions}, recommend the type of medical specialist they should consult. Also, provide a very short bulleted list of 3-4 key questions the user should ask during their appointment.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    specialistOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+
+            async function checkInteraction() {
+                const prompt = `Act as a drug interaction checker. Given the user's pre-existing conditions: "${userData.preConditions}", and teetotaler status: "${userData.isTeetotaler}", explain in a very short bulleted list if there are any potential negative interactions and their severity.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    interactionOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+
+            async function analyzeLifestyle() {
+                const prompt = `Act as a health consultant. Analyze the following user data in the context of their health risks and suggest actionable steps to improve their well-being. Provide the analysis and steps in a very short bulleted list.
+                - Age: ${userData.age}
+                - Height: ${userData.height}
+                - Weight: ${userData.weight}
+                - Pre-existing Conditions: ${userData.preConditions}
+                - Is a teetotaler: ${userData.isTeetotaler}`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    lifestyleOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+
+            async function analyzeTrend() {
+                const prompt = `Act as a health data analyst. Analyze the following user data:
+                - Symptoms: ${userData.symptoms}
+                - Pre-existing Conditions: ${userData.preConditions}
+                - Teetotaler Status: ${userData.isTeetotaler}
+                Provide a very short bulleted list summary of the trend you observe (improving, worsening, or stable) and provide advice based on that trend.`;
+                try {
+                    const response = await callGeminiAPI(prompt);
+                    const items = response.split('\n').filter(item => item.trim() !== '');
+                    trendOutput.innerHTML = `<ul class="list-disc list-inside">${items.map(item => `<li>${item.replace(/^- /, '').trim()}</li>`).join('')}</ul>`;
+                } catch(error) {
+                    showMessage('API Error', error.message);
+                }
+            }
+            // --- END OF MOCKED FUNCTIONS ---
+
+            // --- RENDER FUNCTIONS ---
+            function renderPredictionResults(data) {
+                const resultsEl = document.getElementById('predictionResults');
+                if (!data || data.length === 0) {
+                    resultsEl.innerHTML = `
+                       <div class="bg-gray-700 p-4 rounded-lg shadow-sm">
+                           <h5 class="text-lg font-semibold text-gray-200">No matching conditions found.</h5>
+                           <p class="text-gray-300 text-base mt-1">Please enter common symptoms or consult a professional.</p>
+                       </div>
+                    `;
+                } else {
+                     resultsEl.innerHTML = data.map(condition => `
+                         <div class="bg-gray-700 p-4 rounded-lg shadow-sm mb-4">
+                             <h5 class="text-lg font-semibold text-gray-200">${condition.name} <span class="text-base font-normal text-gray-400">(${Math.round(condition.score * 100)}% Match)</span></h5>
+                             <p class="text-gray-300 text-base mt-1" style="word-wrap: break-word;">${condition.advice}</p>
+                         </div>
+                     `).join('');
+                }
+            }
+            
+            function renderMealAnalysis(data) {
+                mealAnalysisOutput.innerHTML = `<p>${data}</p>`;
+            }
+
+            // --- BACKGROUND ANIMATION AND PAGE NAVIGATION ---
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            const particleCount = 150; // Increased particle count
+            const maxSpeed = 0.75;    // Increased speed
+            const particleSize = 2;   // Increased size
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * particleSize + 1;
+                    this.speedX = Math.random() * maxSpeed - (maxSpeed / 2);
+                    this.speedY = Math.random() * maxSpeed - (maxSpeed / 2);
+                    this.color = `rgba(100, 255, 218, ${Math.random() * 0.5 + 0.1})`;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+                }
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push(new Particle());
+                }
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                    particles[i].draw();
+                }
+                requestAnimationFrame(animateParticles);
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            
+            window.onload = () => {
+                resizeCanvas();
+                initParticles();
+                animateParticles();
+                
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.remove();
+                        mainContent.classList.remove('hidden');
+                    }, 1000);
+                }, 1000);
+            };
+            
+            // --- EVENT LISTENERS ---
+            submitBtn.addEventListener('click', handleSubmit);
+            showPredictorBtn.addEventListener('click', showPredictor);
+            trackProgressBtn.addEventListener('click', trackProgress);
+            getFeedbackBtn.addEventListener('click', getFormFeedback);
+            startRestTimerBtn.addEventListener('click', startRestTimer);
+            analyzeMealBtn.addEventListener('click', analyzeMeal);
+            assessInjuryRiskBtn.addEventListener('click', assessInjuryRisk);
+            getPreventiveTipsBtn.addEventListener('click', getPreventiveTips);
+            findSpecialistBtn.addEventListener('click', findSpecialist);
+            checkInteractionBtn.addEventListener('click', checkInteraction);
+            analyzeLifestyleBtn.addEventListener('click', analyzeLifestyle);
+            analyzeTrendBtn.addEventListener('click', analyzeTrend);
+            modalCloseBtn.addEventListener('click', () => {
+                messageModal.classList.add('hidden');
+            });
+
+            function showMessage(title, message) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                messageModal.classList.remove('hidden');
+            }
+        </script>
+    </body>
+    </html>
